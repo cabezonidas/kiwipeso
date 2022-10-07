@@ -58,8 +58,10 @@ function App() {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(3, 150px)",
+            gridTemplateColumns: "repeat(3, 1fr)",
             gridTemplateRows: "repeat(4, 50px)",
+            width: "100vw",
+            maxWidth: "350px",
           }}
         >
           {digits.map((digit) => (
