@@ -1,23 +1,20 @@
 import React from "react";
 import "./App.css";
 
-const getUsdNzdRates = async () => {
+const getUsdNzdRates = async (): Promise<NZD> => {
   const query = await fetch(
-    "https://api.apilayer.com/currency_data/live?base=USD",
-
-    {
-      headers: {
-        [`${"ap"}${"ik"}${"ey"}`]: window[`${"at"}${"ob"}`](
-          "eGdQYXlZekJKN1hBb2VYc3B4UGd6RTZ4R3g0Vklqc0M="
-        ),
-      },
-    }
+    `https://fxmarketapi.com/apilive?api_key=${window[`${"at"}${"ob"}`](
+      "UGNBbHJNbTNCbnEwakRHVFhfeUI="
+    )}&currency=USDNZD,NZDUSD`
   );
   const response = await query.json();
-  return response.quotes["USDNZD"] as number;
+  return {
+    nzdusd: response.price["USDNZD"] as number,
+    usdnzd: response.price["NZDUSD"] as number,
+  };
 };
 
-const getBlueRates = async () => {
+const getBlueRates = async (): Promise<BLUE> => {
   const query = await fetch(
     "https://www.dolarsi.com/api/api.php?type=valoresprincipales"
   );
@@ -31,29 +28,69 @@ const getBlueRates = async () => {
   };
 };
 
+type NZD = { nzdusd: number; usdnzd: number };
+type BLUE = { compra: number; venta: number };
+type STATE = { usd: NZD; blue: BLUE };
+
+const fetchAgain = async (): Promise<STATE> => {
+  const usd = await getUsdNzdRates();
+  const blue = await getBlueRates();
+  localStorage.setItem(
+    "local-value",
+    JSON.stringify({ usd, blue, timestamp: new Date().getTime() })
+  );
+  return { usd, blue };
+};
+const load = async () => {
+  try {
+    const { usd, blue, timestamp } = JSON.parse(
+      localStorage.getItem("local-value") ?? ""
+    ) as { usd: NZD; blue: BLUE; timestamp: number };
+    const oneDay = 86400000;
+    if (
+      new Date().getTime() - timestamp < oneDay &&
+      typeof usd.nzdusd === "number" &&
+      typeof usd.usdnzd === "number" &&
+      typeof blue.compra === "number" &&
+      typeof blue.venta === "number"
+    ) {
+      return { usd, blue };
+    }
+    // eslint-disable-next-line no-throw-literal
+    throw "old-value";
+  } catch {
+    localStorage.removeItem("local-value");
+    return fetchAgain();
+  }
+};
+
 function App() {
   const [number, setNumber] = React.useState("");
-  const [pair, setPair] = React.useState<{ usd: number; blue: number }>();
+  const [pair, setPair] = React.useState<{
+    usd: NZD;
+    blue: BLUE;
+  }>();
   const digits = [...new Array(9).fill(undefined).map((_, i) => i + 1), 0];
 
   const value = Number(number);
 
   React.useEffect(() => {
-    const load = () =>
-      getUsdNzdRates().then((usd) => {
-        getBlueRates().then(({ compra: blue }) => {
-          setPair({ usd, blue });
-        });
-      });
-    load();
+    load().then((p) => {
+      setPair(p);
+    });
   }, []);
+
+  const oneKiwi = pair?.blue.compra! * pair?.usd.usdnzd!;
 
   return (
     <div className="App">
       <header className="App-header">
         <p style={{ margin: 0 }}>{value} 🇦🇷</p>
         <span>
-          {value && pair ? ((value / pair.blue) * pair.usd).toFixed(2) : 0} 🥝
+          {value && pair
+            ? ((value / pair.blue.venta) * pair.usd.nzdusd).toFixed(2)
+            : 0}{" "}
+          🥝
         </span>
         <div
           style={{
@@ -87,6 +124,9 @@ function App() {
             </button>
           }
         </div>
+        <p
+          style={{ margin: 0, marginTop: 10, fontSize: "smaller" }}
+        >{`1 NZD = ${isNaN(oneKiwi) ? "..." : oneKiwi.toFixed(2)} ARS`}</p>
       </header>
     </div>
   );
