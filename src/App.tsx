@@ -126,7 +126,7 @@ function App() {
         </div>
         <p
           style={{ margin: 0, marginTop: 10, fontSize: "smaller" }}
-        >{`1 NZD = ${isNaN(oneKiwi) ? "..." : oneKiwi.toFixed(2)} ARS`}</p>
+        >{`1 NZD = ${isNaN(oneKiwi) ? "..." : oneKiwi.toFixed(0)} ARS`}</p>
       </header>
     </div>
   );
