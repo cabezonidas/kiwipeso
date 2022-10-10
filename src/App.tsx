@@ -32,10 +32,15 @@ type NZD = { nzdusd: number; usdnzd: number };
 type BLUE = { compra: number; venta: number };
 type STATE = { usd: NZD; blue: BLUE };
 
+const setItem = (key: string, value: string) =>
+  window?.localStorage?.setItem?.(key, value);
+const getItem = (key: string) => window?.localStorage?.getItem?.(key);
+const removeItem = (key: string) => window?.localStorage?.removeItem?.(key);
+
 const fetchAgain = async (): Promise<STATE> => {
   const usd = await getUsdNzdRates();
   const blue = await getBlueRates();
-  localStorage.setItem(
+  setItem(
     "local-value",
     JSON.stringify({ usd, blue, timestamp: new Date().getTime() })
   );
@@ -44,7 +49,7 @@ const fetchAgain = async (): Promise<STATE> => {
 const load = async () => {
   try {
     const { usd, blue, timestamp } = JSON.parse(
-      localStorage.getItem("local-value") ?? ""
+      getItem("local-value") ?? ""
     ) as { usd: NZD; blue: BLUE; timestamp: number };
     const oneDay = 86400000;
     if (
@@ -59,7 +64,7 @@ const load = async () => {
     // eslint-disable-next-line no-throw-literal
     throw "old-value";
   } catch {
-    localStorage.removeItem("local-value");
+    removeItem("local-value");
     return fetchAgain();
   }
 };
